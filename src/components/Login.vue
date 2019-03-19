@@ -28,16 +28,20 @@
         {{ wallet.accountInfo.account_name }} <i v-show="!mobileWallet" style="margin-left:5px;" class="el-icon-close"></i>
       </el-button><br>
       <p style="color:grey;">Balance: {{state.accountInfo.core_liquid_balance}}</p>
-      <div v-if="voting">
+      <div v-if="voting && !finishedVoting">
         <div v-if="state.accountInfo.voter_info.proxy.length>0" style="color:grey;">You are currently voting for proxy: {{state.accountInfo.voter_info.proxy}}</div>
         <div v-else style="color:grey;">You are currently voting for {{state.accountInfo.voter_info.producers.length}} producers</div>
         <br>
         <el-button size="small" @click="vote">Refresh your vote</el-button>
       </div>
-      <div v-else>
+      <div v-if="!voting">
         <p style="color:grey;">You have never voted with this account, please vote for EOS Titan Proxy</p>
         <el-button size="small" @click="vote">Vote EOS Titan</el-button>
       </div>
+      <div v-if="finishedVoting">
+        <p style="color:grey;">Thank you for voting and testing Transit API !</p>
+      </div>
+
     </div>
 
     <!-- Choose Account Info for wallet providers supporting key discovery-->
@@ -72,6 +76,7 @@ export default {
     return {
       mobileWallet:false,
       accountsModal: false,
+      finishedVoting:false,
       message:{},
       accessContext: null,
       wallet: null,
@@ -224,13 +229,16 @@ export default {
         this.message.voting.close();
 
         //if transaction was successfull, show notification with transaction id link
-        if (tx.transaction_id)
+        if (tx.transaction_id){
+          this.finishedVoting = true;
           this.$notify.success({
-            title: "You have refreshed your vote sucessfully", 
+            title: "You voted sucessfully", 
             message: `<br><button class="el-button el-button--default el-button--small" onclick="window.open('https://eosq.app/tx/${tx.transaction_id}')">View Transaction</div>`, 
             duration: 15000,
             dangerouslyUseHTMLString: true
           });
+
+        }
       }catch(ex){
         this.message.voting.close();
         if(ex.message)
