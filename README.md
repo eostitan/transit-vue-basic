@@ -1,6 +1,7 @@
 # transit-vue-basic
 
-EOS Transit example using Vue.js
+EOS Transit API example using Vue.js <br>
+Demo: https://transitdemo.eostitan.com/
 
 ## Project setup
 ```
