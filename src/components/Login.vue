@@ -28,7 +28,7 @@
         {{ wallet.accountInfo.account_name }} <i v-show="!mobileWallet" style="margin-left:5px;" class="el-icon-close"></i>
       </el-button><br>
       <p style="color:grey;">Balance: {{state.accountInfo.core_liquid_balance}}</p>
-      <div v-if="state.accountInfo.voter_info">
+      <div v-if="voting">
         <div v-if="state.accountInfo.voter_info.proxy.length>0" style="color:grey;">You are currently voting for proxy: {{state.accountInfo.voter_info.proxy}}</div>
         <div v-else style="color:grey;">You are currently voting for {{state.accountInfo.voter_info.producers.length}} producers</div>
         <br>
@@ -92,7 +92,6 @@ export default {
     } 
     //if client is not using a mobile wallet
     else {
-      this.walletProviders = [ scatter(), ledger() ];
       this.initTransit()
     }
   },
@@ -108,6 +107,11 @@ export default {
       return list;
     },
     progress(){return this.state.connecting || this.state.authenticating || this.state.fetchingAccount || false},
+    voting(){
+      if (this.state.accountInfo.voter_info && (this.state.accountInfo.voter_info.proxy.length>0 || this.state.accountInfo.voter_info.producers.length>0 ))
+        return true;
+      else return false;
+    }
   },
   methods: {
     initTransit(){
@@ -198,7 +202,7 @@ export default {
       this.message.voting = this.$notify.info({title: "Confirmation", message: `Please confirm the transaction`, duration: 0});
 
       //if user has ever voted, refresh their last vote
-      if (this.state.accountInfo.voter_info)
+      if (this.voting)
         data = {voter: this.state.auth.accountName, proxy:this.state.accountInfo.voter_info.proxy, producers:this.state.accountInfo.voter_info.producers};
 
       //if user has never voted, allow voting for TITAN proxy
