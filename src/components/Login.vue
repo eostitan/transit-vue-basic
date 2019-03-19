@@ -1,7 +1,7 @@
 <template>
   <section>
     <!-- Login dropdown (if logged out)-->
-    <div v-if="!state.accountInfo">
+    <div v-if="!state.accountInfo && !mobileWallet">
       <el-dropdown trigger="click">
         <el-button :loading="progress">
           {{$t("Login")}} <i class="el-icon-arrow-down el-icon--right"></i>
@@ -24,8 +24,8 @@
 
     <!-- Account info and actions (if logged in) -->
     <div v-else>
-      <el-button @click="logout" style="margin-bottom:20px;">
-        {{ wallet.accountInfo.account_name }} <i style="margin-left:5px;" class="el-icon-close"></i>
+      <el-button @click="logout" style="margin-bottom:20px;" :disabled="mobileWallet">
+        {{ wallet.accountInfo.account_name }} <i v-show="!mobileWallet" style="margin-left:5px;" class="el-icon-close"></i>
       </el-button><br>
       <p style="color:grey;">Balance: {{state.accountInfo.core_liquid_balance}}</p>
       <div v-if="state.accountInfo.voter_info">
@@ -64,11 +64,13 @@
 import { initAccessContext } from "eos-transit";
 import scatter from "eos-transit-scatter-provider";
 import ledger from "eos-transit-ledger-provider";
+import lynx from "eos-transit-lynx-provider";
 
 export default {
   name: "Login",
   data() {
     return {
+      mobileWallet:false,
       accountsModal: false,
       message:{},
       accessContext: null,
@@ -79,21 +81,23 @@ export default {
     };
   },
   created() {
-    //initialize Transit with the API info and desired wallet providers
-    this.accessContext = initAccessContext({
-      appName: "transit-vue-test",
-      network: {
-        blockchain:'eos',
-        protocol:'https',
-        host:'public.eosinfra.io',
-        port:443,
-        chainId:'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
-      },
-      walletProviders: [scatter(), ledger()]
-    });
+    //if client is using mobile wallet (Now set for Lynx)
+    if (navigator.userAgent.includes('EOSLynx')){
+      this.mobileWallet = true;
+      this.walletId = 'EOS Lynx';
+      //if lynxMobile is already loaded, initialize transit
+      if (window.lynxMobile) this.initTransit();
+      //otherwise wait for lynxMobile to load first
+      else window.addEventListener("lynxMobileLoaded", ()=> this.initTransit());
+    } 
+    //if client is not using a mobile wallet
+    else {
+      this.walletProviders = [ scatter(), ledger() ];
+      this.initTransit()
+    }
   },
   computed: {
-
+    
     //reactive accounts list of all discovered public keys
     accounts() {
       var list = [];
@@ -106,12 +110,36 @@ export default {
     progress(){return this.state.connecting || this.state.authenticating || this.state.fetchingAccount || false},
   },
   methods: {
+    initTransit(){
+      var options = {
+        appName: "transit-vue-test",
+        network: {
+          blockchain:'eos',
+          protocol:'https',
+          host:'public.eosinfra.io',
+          port:443,
+          chainId:'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
+        }
+      }
+      //set desired wallet providers
+      if (this.mobileWallet) options.walletProviders = [lynx()];
+      else options.walletProviders = [scatter(), ledger()];
+
+      //initialize Transit with the options object
+      this.accessContext = initAccessContext(options);
+      
+      //Auto connect and login if user is on a mobile wallet
+      if (!this.mobileWallet) return;
+      this.connectWallet(this.walletId);
+
+    },
     async discoverMore(n) {
       for (var i=1;i<n;i++)
         this.discoveryData = await this.wallet.discover({pathIndexList: [i]});
     },
     connectWallet(walletId) {
       this.walletId = walletId;
+
       // initialize Transit wallet instance with your desired signature provider
       this.wallet = this.accessContext.initWallet(this.accessContext.getWalletProviders().find(r=>{return r.id==walletId;}));
 
