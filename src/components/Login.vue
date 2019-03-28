@@ -69,6 +69,7 @@ import { initAccessContext } from "eos-transit";
 import scatter from "eos-transit-scatter-provider";
 import ledger from "eos-transit-ledger-provider";
 import lynx from "eos-transit-lynx-provider";
+import tp from 'eos-transit-tokenpocket-provider';
 
 export default {
   name: "Login",
@@ -87,7 +88,7 @@ export default {
   },
   created() {
     //if client is using mobile wallet (Now set for Lynx)
-    if (navigator.userAgent.includes('EOSLynx')){
+    if (navigator.userAgent.toLowerCase().includes('eoslynx')){
       this.mobileWallet = true;
       this.walletId = 'EOS Lynx';
       //if lynxMobile is already loaded, initialize transit
@@ -95,10 +96,16 @@ export default {
       //otherwise wait for lynxMobile to load first
       else window.addEventListener("lynxMobileLoaded", ()=> this.initTransit());
     } 
+    else if (navigator.userAgent.toLowerCase().includes('tokenpocket')){
+      this.mobileWallet = true;
+      this.walletId = 'TokenPocket';
+      //if TokenPocket is already loaded, initialize transit
+      if (window.scatter) this.initTransit();
+      //otherwise wait 1s for TokenPocket to load
+      else setTimeout(()=>this.initTransit(), 1000)
+    } 
     //if client is not using a mobile wallet
-    else {
-      this.initTransit()
-    }
+    else this.initTransit();
   },
   computed: {
     
@@ -131,7 +138,7 @@ export default {
         }
       }
       //set desired wallet providers
-      if (this.mobileWallet) options.walletProviders = [lynx()];
+      if (this.mobileWallet) options.walletProviders = [lynx(), tp()];
       else options.walletProviders = [scatter(), ledger()];
 
       //initialize Transit with the options object
