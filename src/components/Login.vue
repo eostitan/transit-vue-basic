@@ -101,8 +101,8 @@ export default {
       this.walletId = 'TokenPocket';
       //if TokenPocket is already loaded, initialize transit
       if (window.scatter) this.initTransit();
-      //otherwise wait 1s for TokenPocket to load
-      else setTimeout(()=>this.initTransit(), 1000)
+      //otherwise wait for TokenPocket to load
+      else window.addEventListener("scatterLoaded", ()=> this.initTransit());
     } 
     //if client is not using a mobile wallet
     else this.initTransit();
