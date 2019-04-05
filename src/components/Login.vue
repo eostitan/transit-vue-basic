@@ -70,6 +70,7 @@ import scatter from "eos-transit-scatter-provider";
 import ledger from "eos-transit-ledger-provider";
 import lynx from "eos-transit-lynx-provider";
 import tp from 'eos-transit-tokenpocket-provider';
+import meetone from 'eos-transit-meetone-provider';
 
 export default {
   name: "Login",
@@ -102,6 +103,14 @@ export default {
       //if TokenPocket is already loaded, initialize transit
       if (window.scatter) this.initTransit();
       //otherwise wait for TokenPocket to load
+      else window.addEventListener("scatterLoaded", ()=> this.initTransit());
+    } 
+    else if (navigator.userAgent.toLowerCase().includes('meet.one')){
+      this.mobileWallet = true;
+      this.walletId = 'meetone_provider';
+      // if Meet.One is already loaded, initialize transit
+      if (window.scatter) this.initTransit();
+      //otherwise wait for Meet.One to load
       else window.addEventListener("scatterLoaded", ()=> this.initTransit());
     } 
     //if client is not using a mobile wallet
@@ -138,7 +147,7 @@ export default {
         }
       }
       //set desired wallet providers
-      if (this.mobileWallet) options.walletProviders = [lynx(), tp()];
+      if (this.mobileWallet) options.walletProviders = [lynx(), tp(), meetone()];
       else options.walletProviders = [scatter(), ledger()];
 
       //initialize Transit with the options object
