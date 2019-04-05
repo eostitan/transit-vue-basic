@@ -23,7 +23,7 @@
     </div>
 
     <!-- Account info and actions (if logged in) -->
-    <div v-else>
+    <div v-else-if="state.accountInfo">
       <el-button @click="logout" style="margin-bottom:20px;" :disabled="mobileWallet">
         {{ wallet.accountInfo.account_name }} <i v-show="!mobileWallet" style="margin-left:5px;" class="el-icon-close"></i>
       </el-button><br>
@@ -43,6 +43,9 @@
       </div>
 
     </div>
+
+    <!-- Show user agent if there is an issue logging in to a mobile wallet -->
+    <div v-else>{{nav}}</div>
 
     <!-- Choose Account Info for wallet providers supporting key discovery-->
     <transition name="el-zoom-in-center">
@@ -71,15 +74,17 @@ import ledger from "eos-transit-ledger-provider";
 import lynx from "eos-transit-lynx-provider";
 import tp from 'eos-transit-tokenpocket-provider';
 import meetone from 'eos-transit-meetone-provider';
+import { setTimeout } from 'timers';
 
 export default {
   name: "Login",
   data() {
     return {
-      mobileWallet:false,
+      nav: navigator.userAgent,
+      mobileWallet: false,
       accountsModal: false,
-      finishedVoting:false,
-      message:{},
+      finishedVoting: false,
+      message: {},
       accessContext: null,
       wallet: null,
       state:{},
@@ -111,7 +116,7 @@ export default {
       // if Meet.One is already loaded, initialize transit
       if (window.scatter) this.initTransit();
       //otherwise wait for Meet.One to load
-      else window.addEventListener("scatterLoaded", ()=> this.initTransit());
+      else setTimeout( ()=> this.initTransit(), 1000);
     } 
     //if client is not using a mobile wallet
     else this.initTransit();
