@@ -113,10 +113,8 @@ export default {
     else if (navigator.userAgent.toLowerCase().includes('meet.one')){
       this.mobileWallet = true;
       this.walletId = 'meetone_provider';
-      // if Meet.One is already loaded, initialize transit
-      if (window.scatter) this.initTransit();
-      //otherwise wait for Meet.One to load
-      else setTimeout( ()=> this.initTransit(), 1000);
+      // initialize transit with Meet.One wallet (transit will wait for window.scatter to load)
+      this.initTransit();
     } 
     //if client is not using a mobile wallet
     else this.initTransit();
@@ -159,8 +157,10 @@ export default {
       this.accessContext = initAccessContext(options);
       
       //Auto connect and login if user is on a mobile wallet
-      if (!this.mobileWallet) return;
-      this.connectWallet(this.walletId);
+      if (this.mobileWallet) this.connectWallet(this.walletId);
+
+      //auto login to last wallet if user never logged out
+      else if (localStorage.autoLogin) this.connectWallet(localStorage.autoLogin);
 
     },
     async discoverMore(n) {
@@ -170,8 +170,12 @@ export default {
     connectWallet(walletId) {
       this.walletId = walletId;
 
+      //fetch provider using the walletId;
+      let provider = this.accessContext.getWalletProviders().find(r=>{return r.id==walletId;});
+      if (!provider) return;
+
       // initialize Transit wallet instance with your desired signature provider
-      this.wallet = this.accessContext.initWallet(this.accessContext.getWalletProviders().find(r=>{return r.id==walletId;}));
+      this.wallet = this.accessContext.initWallet(provider);
 
       //Subscrible to Transit wallet changes and bind it to a vue variable
       this.wallet.subscribe(walletState =>this.state = walletState);
@@ -214,6 +218,8 @@ export default {
       this.message.authenticating.close();
     },
     async logout() {
+      //null autologin
+      localStorage.removeItem('autoLogin');
       this.message.logout = this.$notify.info({title: "Logging out", duration: 0});
       await this.wallet.terminate();
       this.message.logout.close();
@@ -286,6 +292,8 @@ export default {
         if( this.message.accountInfo) this.message.accountInfo.close();
         this.message.accountInfo = this.$notify.success({title: "Success", message: `Logged in successfully as ${val.accountInfo.account_name}`, duration: 3000});
         this.accountsModal = false;
+        //once user logs in successfully with scatter, save variable to localstorage to allow auto login
+        localStorage.autoLogin = this.walletId;
       }
     }
   }
